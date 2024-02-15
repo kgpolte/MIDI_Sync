@@ -3,9 +3,9 @@
  ## v0.3 BETA
  
 # Changes:
-	- Switched from using the Adafruit MIDIUSB library to Lathoub's [Arduino-USBMIDI](https://github.com/lathoub/Arduino-USBMIDI/tree/master), which required a complete rewriting of the code. This was necessary to fix issues with inconsistent clock pulses. The 24ppqn output is much smoother now, but could still probably be improved.
+	Switched from using the Adafruit MIDIUSB library to Lathoub's [Arduino-USBMIDI](https://github.com/lathoub/Arduino-USBMIDI/tree/master), which required a complete rewriting of the code. This was necessary to fix issues with inconsistent clock pulses. The 24ppqn output is much smoother now, but could still probably be improved.
 	
-	- Went back to using digitalWrite() to update the output pins. This allows the code to remain a bit more modular in anticipation of future updates including additional outputs and controls.
+	Went back to using digitalWrite() to update the output pins. This allows the code to remain a bit more modular in anticipation of future updates including additional outputs and controls.
  
 # Description:
  
