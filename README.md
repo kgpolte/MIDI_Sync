@@ -11,6 +11,6 @@ Went back to using digitalWrite() to update the output pins. This allows the cod
  
 A super-simple MIDI clock/run sync utility for Eurorack.
 
-Designed to be sync Pam's Pro Workout with a DAW.
+Designed to sync Pam's Pro Workout with a DAW.
 
 Outputs a 24ppqn clock signal and a gate that stays high during playback and recording.
