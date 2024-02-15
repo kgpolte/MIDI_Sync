@@ -20,76 +20,79 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
-
--- Eurorack MIDI Clock & Run Sync --
-
-A DIY project built specifically to sync Pam's Pro Workout with my DAW's clock.
-Accepts standard MIDI messages via USB and outputs a 24ppqn CLOCK and a steady 
-RUN gate during playback/recording.
-
-This sketch is written for the Arduino Micro and uses direct addressing to
-update the outputs. Make sure you update the port register values in this code when
-using a different device or changing pins.
-
-NOTE THE PHYSICAL PIN NUMBERS:
-  clock output - D2;
-  run output - D8;
-
-Outputs should be buffered. In my design, I am using opamp-based comparators to
-boost the voltage to Eurorack level (+10V). See the included schematic.
-
 */
 
-#include "MIDIUSB.h"
+#include <USB-MIDI.h>
 
+USBMIDI_CREATE_DEFAULT_INSTANCE();
+
+const int clockPin = 2;
+const int runPin = 8;
+unsigned long t0 = millis();
 int clockState = LOW;
-const int clockPulseLength = 5; // milliseconds
-int clockPulseTimer = 0;
-unsigned long startMillis = 0;
+int clockLength = 5;
 
-void readMIDI() {
-  midiEventPacket_t rx;
-
-  // Read all incoming MIDI messages
-  // Process clock, start/continue, and stop signals
-  do {
-    rx = MidiUSB.read();
-    if (rx.header != 0) {
-      if (rx.byte1 == 0xF8) {
-        PORTD = B0000010;
-        clockState = HIGH;
-        startMillis = millis();
-      } else if (rx.byte1 == 0xFA || rx.byte1 == 0xFB) {
-        PORTB = B00010000;
-      } else if (rx.byte1 == 0xFC) {
-        PORTB = B00000000;
-      }
-    }
-  } while (rx.header != 0);
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+static void OnClock()
+{
+  clockState = HIGH;
+  digitalWrite(clockPin, HIGH);
+  t0 = millis();
 }
 
-void updateClockOutput() {
+static void OnStart()
+{
+  digitalWrite(runPin, HIGH);
+}
 
-  // Update the clock gate timer
-  // Turn the gate to low if the set amount of time has elapsed
+static void OnContinue()
+{
+  digitalWrite(runPin, HIGH);
+}
+
+static void OnStop()
+{
+  digitalWrite(runPin, LOW);
+}
+
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+void updateClock() 
+{
   if (clockState == HIGH) {
-    const long delta = millis() - startMillis;
-    if (delta >= clockPulseLength) {
-      PORTD = B00000000;
+    if (millis() - t0 >= clockLength) {
       clockState = LOW;
+      digitalWrite(clockPin, LOW);
     }
   }
 }
 
-void setup() {
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+void setup()
+{
   Serial.begin(115200);
-  DDRD = B11111111;
-  DDRB = B11111111;
+  while (!Serial);
+
+  pinMode(clockPin, OUTPUT);
+  pinMode(runPin, OUTPUT);
+
+  MIDI.begin();
+  MIDI.setHandleClock(OnClock);
+  MIDI.setHandleStart(OnStart);
+  MIDI.setHandleContinue(OnContinue);
+  MIDI.setHandleStop(OnStop);
 }
 
-void loop() {
-  readMIDI();
-  updateClockOutput();
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+void loop()
+{
+  MIDI.read();
+  updateClock();
 }
