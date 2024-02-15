@@ -1,47 +1,98 @@
-#include "MIDIUSB.h"
+/*
+MIT License
+
+Copyright (c) 2024 Kenny Polte
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#include <USB-MIDI.h>
+
+USBMIDI_CREATE_DEFAULT_INSTANCE();
 
 const int clockPin = 2;
-const int runPin = 3;
+const int runPin = 8;
+unsigned long t0 = millis();
 int clockState = LOW;
-const int clockPulseLength = 5; // milliseconds
-int clockPulseTimer = 0;
-unsigned long previousMillis = 0;
+int clockLength = 5;
 
-void readMIDI() {
-  midiEventPacket_t rx;
-  do {
-    rx = MidiUSB.read();
-    if (rx.header != 0) {
-      if (rx.byte1 == 0xF8) {
-        digitalWrite(clockPin, HIGH);
-        clockState = HIGH;
-        previousMillis = millis();
-      } else if (rx.byte1 == 0xFA || rx.byte1 == 0xFB) {
-        digitalWrite(runPin, HIGH);
-      } else if (rx.byte1 == 0xFC) {
-        digitalWrite(runPin, LOW);
-      }
-    }
-  } while (rx.header != 0);
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+static void OnClock()
+{
+  clockState = HIGH;
+  digitalWrite(clockPin, HIGH);
+  t0 = millis();
 }
 
-void updateClockOutput() {
+static void OnStart()
+{
+  digitalWrite(runPin, HIGH);
+}
+
+static void OnContinue()
+{
+  digitalWrite(runPin, HIGH);
+}
+
+static void OnStop()
+{
+  digitalWrite(runPin, LOW);
+}
+
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+void updateClock() 
+{
   if (clockState == HIGH) {
-    const long delta = millis() - previousMillis;
-    if (delta >= clockPulseLength) {
-      digitalWrite(clockPin, LOW);
+    if (millis() - t0 >= clockLength) {
       clockState = LOW;
+      digitalWrite(clockPin, LOW);
     }
   }
 }
 
-void setup() {
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+void setup()
+{
   Serial.begin(115200);
+  while (!Serial);
+
   pinMode(clockPin, OUTPUT);
-  digitalWrite(clockPin, clockState);
+  pinMode(runPin, OUTPUT);
+
+  MIDI.begin();
+  MIDI.setHandleClock(OnClock);
+  MIDI.setHandleStart(OnStart);
+  MIDI.setHandleContinue(OnContinue);
+  MIDI.setHandleStop(OnStop);
 }
 
-void loop() {
-  readMIDI();
-  updateClockOutput();
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+void loop()
+{
+  MIDI.read();
+  updateClock();
 }
