@@ -26,8 +26,8 @@ SOFTWARE.
 
 USBMIDI_CREATE_DEFAULT_INSTANCE();
 
-const int clockPin = 2;
-const int runPin = 8;
+const int clockPin = 7;
+const int runPin = 6;
 unsigned long t0 = millis();
 int clockState = LOW;
 int clockLength = 5;
@@ -62,6 +62,7 @@ static void OnStop()
 // -----------------------------------------------------------------------------
 void updateClock() 
 {
+  // Set clock output LOW after if the set trigger time has elapsed
   if (clockState == HIGH) {
     if (millis() - t0 >= clockLength) {
       clockState = LOW;
