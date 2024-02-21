@@ -26,47 +26,53 @@ SOFTWARE.
 
 USBMIDI_CREATE_DEFAULT_INSTANCE();
 
-const int clockPin = 7;
-const int runPin = 6;
 unsigned long t0 = millis();
 int clockState = LOW;
 int clockLength = 5;
+byte pinStates = B00000000;
 
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
+
 static void OnClock()
 {
   clockState = HIGH;
-  digitalWrite(clockPin, HIGH);
+  pinStates += B10000000;
+  PORTD = pinStates;
   t0 = millis();
 }
 
 static void OnStart()
 {
-  digitalWrite(runPin, HIGH);
+  pinStates += B01000000;
+  PORTD = pinStates;
 }
 
 static void OnContinue()
 {
-  digitalWrite(runPin, HIGH);
+  pinStates += B01000000;
+  PORTD = pinStates;
 }
 
 static void OnStop()
 {
-  digitalWrite(runPin, LOW);
+  pinStates -= B01000000;
+  PORTD = pinStates;
 }
 
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
+
 void updateClock() 
 {
   // Set clock output LOW after if the set trigger time has elapsed
   if (clockState == HIGH) {
     if (millis() - t0 >= clockLength) {
       clockState = LOW;
-      digitalWrite(clockPin, LOW);
+      pinStates -= B10000000;
+      PORTD = pinStates;
     }
   }
 }
@@ -74,13 +80,16 @@ void updateClock()
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
+
 void setup()
 {
   Serial.begin(115200);
   while (!Serial);
 
-  pinMode(clockPin, OUTPUT);
-  pinMode(runPin, OUTPUT);
+  // Set PD6 and PD7 to outputs
+  // PD6: pin D12, clock
+  // PD7: pin D6, run
+  DDRD = B11000000;
 
   MIDI.begin();
   MIDI.setHandleClock(OnClock);
