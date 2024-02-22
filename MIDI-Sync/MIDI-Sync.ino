@@ -28,7 +28,7 @@ USBMIDI_CREATE_DEFAULT_INSTANCE();
 
 unsigned long t0 = millis();
 int clockState = LOW;
-int clockLength = 5;
+int clockLength = 3;
 byte pinStates = B00000000;
 
 // -----------------------------------------------------------------------------
@@ -38,27 +38,27 @@ byte pinStates = B00000000;
 static void OnClock()
 {
   clockState = HIGH;
-  pinStates += B10000000;
-  PORTD = pinStates;
+  pinStates += B00000001;
+  PORTF = pinStates;
   t0 = millis();
 }
 
 static void OnStart()
 {
-  pinStates += B01000000;
-  PORTD = pinStates;
+  pinStates += B00000010;
+  PORTF = pinStates;
 }
 
 static void OnContinue()
 {
-  pinStates += B01000000;
-  PORTD = pinStates;
+  pinStates += B00000010;
+  PORTF = pinStates;
 }
 
 static void OnStop()
 {
-  pinStates -= B01000000;
-  PORTD = pinStates;
+  pinStates -= B00000010;
+  PORTF = pinStates;
 }
 
 // -----------------------------------------------------------------------------
@@ -71,8 +71,8 @@ void updateClock()
   if (clockState == HIGH) {
     if (millis() - t0 >= clockLength) {
       clockState = LOW;
-      pinStates -= B10000000;
-      PORTD = pinStates;
+      pinStates -= B00000001;
+      PORTF = pinStates;
     }
   }
 }
@@ -89,7 +89,7 @@ void setup()
   // Set PD6 and PD7 to outputs
   // PD6: pin D12, clock
   // PD7: pin D6, run
-  DDRD = B11000000;
+  DDRF = B00000011;
 
   MIDI.begin();
   MIDI.setHandleClock(OnClock);
